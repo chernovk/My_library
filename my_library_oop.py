@@ -1,8 +1,7 @@
 import csv
-from typing import NoReturn
+import json
 
 import sqlite3
-import tkinter
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter import filedialog
@@ -100,6 +99,8 @@ class BookForm:
             self.book_name_field.insert(0, self.book_info_to_update[2])
         if self.extra_button:
             self.extra_button.pack(side='bottom')
+        if self.another_extra_button:
+            self.another_extra_button.pack(side='bottom')
 
         self.window.mainloop()
 
@@ -117,6 +118,10 @@ class BookForm:
     def extra_button(self):
         return None
 
+    @property
+    def another_extra_button(self):
+        return None
+
     def backing(self):
         """
         функция для кнопки "Назад(домой)"
@@ -125,7 +130,7 @@ class BookForm:
         self.window.destroy()
         self.parent.window.deiconify()
 
-    def closing(self) -> NoReturn:
+    def closing(self):
         """
         Завершение работы программы
         :return:
@@ -145,7 +150,13 @@ class AddBook(BookForm):
     def extra_button(self):
         return Button(self.bottom_frame, text='Добавить несколько из файла csv', background="#555",
                       foreground="#ccc", padx="70",
-                      font=('TimesNewRoman', 13), command=self.add_file)
+                      font=('TimesNewRoman', 13), command=self.add_file_csv)
+
+    @property
+    def another_extra_button(self):
+        return Button(self.bottom_frame, text='Добавить несколько из файла json', background="#555",
+                      foreground="#ccc", padx="70",
+                      font=('TimesNewRoman', 13), command=self.add_file_json)
 
     @property
     def header(self):
@@ -158,7 +169,7 @@ class AddBook(BookForm):
                       padx="70", font=('TimesNewRoman', 13), command=self.adding)
 
     @staticmethod
-    def add_file():
+    def add_file_csv():
         """
         Добавление коллекции книг из файла csv
         :return:
@@ -204,7 +215,62 @@ class AddBook(BookForm):
         except TypeError:
             pass
 
-    def adding(self) -> NoReturn:
+    @staticmethod
+    def add_file_json():
+        """
+        Добавление коллекции книг из файла csv
+        :return:
+        """
+        file_name = filedialog.askopenfilename(filetypes=[('JSON', '*.json')])
+        try:
+            with open(file_name, "r") as file:
+                list_of_books_from_json = json.load(file)
+                print(list_of_books_from_json)
+                incorrect_year = ''
+                incorrect_name = ''
+                book_copy = ''
+                new_books = []
+                for _object in list_of_books_from_json:
+                    print(_object)
+                    book = [_object["Год выпуска"].strip(), _object["Автор"].strip(),
+                            _object["Название"].strip()]
+                    print(book)
+                    if book[0] == 'не указан':
+                        book[0] = ''
+                    elif book[0] and not book[0].isdigit():
+                        incorrect_year = 'Обнаружены позиции с некорректным годом издания\n'
+                        continue
+                    if not book[2]:
+                        incorrect_name = 'Обнаружены позиции без названия\n'
+                        continue
+                    if book in cursor.execute("SELECT * FROM books"):
+                        book_copy = 'Обнаружены позиции уже имеющиеся в библиотеке\n'
+                        continue
+                    new_books.append(book)
+                if incorrect_name != '' or incorrect_year != '' or book_copy != '':
+                    add_confirm = messagebox.askyesno('MyLib', f'В файле обнаружены '
+                                                               f'следующие ошибки:\n\n'
+                                                               f'{incorrect_year}'
+                                                               f'{incorrect_name}'
+                                                               f'{book_copy}\n'
+                                                               f'Игнорировать эти '
+                                                               f'позиции и продолжить загрузку? ')
+                    if add_confirm:
+                        cursor.executemany("INSERT INTO books VALUES (?, ?, ?)", new_books)
+                        print(new_books)
+                        db.commit()
+                        messagebox.showinfo('MyLib', 'Книги успешно добавлены в библиотеку')
+                else:
+                    cursor.executemany("INSERT INTO books VALUES (?, ?, ?)", new_books)
+                    print(new_books)
+                    db.commit()
+                    messagebox.showinfo('MyLib', 'Книги успешно добавлены в библиотеку')
+        except FileNotFoundError:
+            pass
+        except TypeError:
+            pass
+
+    def adding(self):
         """
         добавление одной книги со внесенными параметрами
         :return:
@@ -276,16 +342,19 @@ class SearchingResults:
         self.book_list = set(cursor.fetchall())
 
         if len(self.book_list) > 0:
-            self.window = tkinter.Tk()
+            self.window = Tk()
             self.top_frame = Frame(self.window)
             self.left_frame = Frame(self.window)
             self.right_frame = Frame(self.window)
             self.window.title('Результаты поиска | MyLib')
             self.book_searched_text = Label(self.top_frame, text='Найденные книги:',
                                             font=('TimesNewRoman', 15), pady='20', padx='10')
-            self.button_load = Button(self.right_frame, text='Выгрузить в txt',
-                                      background="#555", foreground="#ccc",
-                                      padx="54", font=('TimesNewRoman', 13), command=self.load_txt)
+            self.button_load_txt = Button(self.right_frame, text='Выгрузить в txt',
+                                          background="#555", foreground="#ccc",
+                                          padx="54", font=('TimesNewRoman', 13), command=self.load_txt)
+            self.button_load_json = Button(self.right_frame, text='Выгрузить в json',
+                                           background="#555", foreground="#ccc",
+                                           padx="48", font=('TimesNewRoman', 13), command=self.load_json)
             self.button_load_csv = Button(self.right_frame, text='Выгрузить в csv',
                                           background="#555",
                                           foreground="#ccc", padx="51",
@@ -302,8 +371,9 @@ class SearchingResults:
             self.left_frame.pack(side='left', fill='both', expand=True)
             self.right_frame.pack(side='right')
             self.book_searched_text.pack(fill='both')
-            self.button_load.grid(sticky='e')
+            self.button_load_txt.grid(sticky='e')
             self.button_load_csv.grid(sticky='e')
+            self.button_load_json.grid(sticky='e')
             self.button_upd.grid(sticky='e')
             self.button_del.grid(sticky='e')
             self.table = ttk.Treeview(self.left_frame, columns=("year", "author", "name"), height=500)
@@ -374,14 +444,28 @@ class SearchingResults:
                 writer.writerow(book)
         messagebox.showinfo('MyLib', 'Список книг выгружен в файл book_table.csv')
 
+    def load_json(self):
+        """
+        Выгрузить список книг в JSON
+        """
+        with open('book_list.json', "w", encoding='utf-8') as f_json:
+            list_of_books = []
+            for ind, book in enumerate(self.book_list, 1):
+                data = {
+                    "Год выпуска": f"{book[0] if book[0] != '' else 'не указан'}",
+                    "Автор": f"{book[1] if book[1] != '' else 'не указан'}",
+                    "Название": f"{book[2]}"
+                }
+                list_of_books.append(data)
+            json.dump(list_of_books, f_json, ensure_ascii=False)
+        messagebox.showinfo('MyLib', 'Список книг выгружен в файл book_list.json')
+
 
 class UpdateBook(BookForm):
     def __init__(self, parent, chosen_book):
         super().__init__(parent, chosen_book)
         self.book_info_to_update = chosen_book
         self.parent = parent
-
-
 
     @property
     def header(self):
@@ -395,7 +479,7 @@ class UpdateBook(BookForm):
 
     def accept_changes(self):
         """
-        Функция, принимаюшая изменения
+        Функция, принимаюшая и сохраняющая изменения
         :return:
         """
         res_upd = (self.book_year_field.get(), self.book_author_field.get(), self.book_name_field.get())
@@ -424,6 +508,13 @@ class UpdateBook(BookForm):
             else:
                 messagebox.showinfo('MyLib', f'Книга \'{res_upd[2]}\''
                                              f' уже имеется в библиотеке')
+
+    def closing(self):
+        """
+        Завершение работы программы
+        :return:
+        """
+        self.window.destroy()
 
 
 main_window = MainMenu()
