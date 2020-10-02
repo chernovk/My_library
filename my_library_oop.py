@@ -54,7 +54,6 @@ class BookForm:
     Функция-окно добавления книг
     :return:
     """
-
     def __init__(self, parent=None, chosen_book=None):
         self.book_info_to_update = chosen_book
         self.parent = parent
@@ -99,8 +98,6 @@ class BookForm:
             self.book_name_field.insert(0, self.book_info_to_update[2])
         if self.extra_button:
             self.extra_button.pack(side='bottom')
-        if self.another_extra_button:
-            self.another_extra_button.pack(side='bottom')
 
         self.window.mainloop()
 
@@ -148,15 +145,9 @@ class AddBook(BookForm):
 
     @property
     def extra_button(self):
-        return Button(self.bottom_frame, text='Добавить несколько из файла csv', background="#555",
+        return Button(self.bottom_frame, text='Добавить несколько из csv/json', background="#555",
                       foreground="#ccc", padx="70",
-                      font=('TimesNewRoman', 13), command=self.add_file_csv)
-
-    @property
-    def another_extra_button(self):
-        return Button(self.bottom_frame, text='Добавить несколько из файла json', background="#555",
-                      foreground="#ccc", padx="70",
-                      font=('TimesNewRoman', 13), command=self.add_file_json)
+                      font=('TimesNewRoman', 13), command=self.add_file)
 
     @property
     def header(self):
@@ -169,75 +160,30 @@ class AddBook(BookForm):
                       padx="70", font=('TimesNewRoman', 13), command=self.adding)
 
     @staticmethod
-    def add_file_csv():
+    def add_file():
         """
-        Добавление коллекции книг из файла csv
+        Добавление коллекции книг из файла csv / json
         :return:
         """
-        file_name = filedialog.askopenfilename(filetypes=[('CSV', '*.csv')])
+        file_name = filedialog.askopenfilename(filetypes=[('CSV', '*.csv'), ('JSON', '*.json')])
         try:
-            with open(file_name, "r") as file:
-                reader = csv.reader(file)
-                incorrect_year = ''
-                incorrect_name = ''
-                book_copy = ''
-                new_books = set()
-                for row in reader:
-                    book = tuple([row[0].strip(), row[1].strip(), row[2].strip()])
-                    if book[0] and not book[0].isdigit():
-                        incorrect_year = 'Обнаружены позиции с некорректным годом издания\n'
-                        continue
-                    if not book[2]:
-                        incorrect_name = 'Обнаружены позиции без названия\n'
-                        continue
-                    if book in cursor.execute("SELECT * FROM books"):
-                        book_copy = 'Обнаружены позиции уже имеющиеся в библиотеке\n'
-                        continue
-                    new_books.add(book)
-                if incorrect_name != '' or incorrect_year != '' or book_copy != '':
-                    add_confirm = messagebox.askyesno('MyLib', f'В файле обнаружены '
-                                                               f'следующие ошибки:\n\n'
-                                                               f'{incorrect_year}'
-                                                               f'{incorrect_name}'
-                                                               f'{book_copy}\n'
-                                                               f'Игнорировать эти '
-                                                               f'позиции и продолжить загрузку? ')
-                    if add_confirm:
-                        cursor.executemany("INSERT INTO books VALUES (?, ?, ?)", new_books)
-                        db.commit()
-                        messagebox.showinfo('MyLib', 'Книги успешно добавлены в библиотеку')
-                else:
-                    cursor.executemany("INSERT INTO books VALUES (?, ?, ?)", new_books)
-                    db.commit()
-                    messagebox.showinfo('MyLib', 'Книги успешно добавлены в библиотеку')
-        except FileNotFoundError:
-            pass
-        except TypeError:
-            pass
+            with open(file_name, "r", encoding="utf-8") as file:
+                if file_name.endswith('.csv'):
+                    list_of_books = csv.reader(file)
+                elif file_name.endswith('.json'):
+                    list_of_books = json.load(file)
 
-    @staticmethod
-    def add_file_json():
-        """
-        Добавление коллекции книг из файла csv
-        :return:
-        """
-        file_name = filedialog.askopenfilename(filetypes=[('JSON', '*.json')])
-        try:
-            with open(file_name, "r") as file:
-                list_of_books_from_json = json.load(file)
-                print(list_of_books_from_json)
                 incorrect_year = ''
                 incorrect_name = ''
                 book_copy = ''
                 new_books = []
-                for _object in list_of_books_from_json:
-                    print(_object)
-                    book = [_object["Год выпуска"].strip(), _object["Автор"].strip(),
-                            _object["Название"].strip()]
-                    print(book)
-                    if book[0] == 'не указан':
-                        book[0] = ''
-                    elif book[0] and not book[0].isdigit():
+                for row in list_of_books:
+                    if file_name.endswith('.csv'):
+                        book = tuple([row[0].strip(), row[1].strip(), row[2].strip()])
+                    elif file_name.endswith('.json'):
+                        book = tuple([row["Год выпуска"].strip(), row["Автор"].strip(),
+                                row["Название"].strip()])
+                    if book[0] and not book[0].isdigit():
                         incorrect_year = 'Обнаружены позиции с некорректным годом издания\n'
                         continue
                     if not book[2]:
@@ -257,12 +203,10 @@ class AddBook(BookForm):
                                                                f'позиции и продолжить загрузку? ')
                     if add_confirm:
                         cursor.executemany("INSERT INTO books VALUES (?, ?, ?)", new_books)
-                        print(new_books)
                         db.commit()
                         messagebox.showinfo('MyLib', 'Книги успешно добавлены в библиотеку')
                 else:
                     cursor.executemany("INSERT INTO books VALUES (?, ?, ?)", new_books)
-                    print(new_books)
                     db.commit()
                     messagebox.showinfo('MyLib', 'Книги успешно добавлены в библиотеку')
         except FileNotFoundError:
@@ -439,7 +383,7 @@ class SearchingResults:
         Выгрузить список книг в таблицу CSV
         """
         with open('book_table.csv', "w", encoding='utf-8') as f_csv:
-            writer = csv.writer(f_csv, delimiter=',')
+            writer = csv.writer(f_csv, delimiter=',', lineterminator="\r")
             for book in self.book_list:
                 writer.writerow(book)
         messagebox.showinfo('MyLib', 'Список книг выгружен в файл book_table.csv')
