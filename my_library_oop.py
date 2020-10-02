@@ -1,11 +1,14 @@
 import csv
 import json
+from abc import ABC
 
 import sqlite3
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import *
+
+from book import Book
 
 db = sqlite3.connect('lib.db')
 cursor = db.cursor()
@@ -49,7 +52,7 @@ class MainMenu:
         SearchBook(self)
 
 
-class BookForm:
+class BookForm(ABC):
     """
     Функция-окно добавления книг
     :return:
@@ -115,10 +118,6 @@ class BookForm:
     def extra_button(self):
         return None
 
-    @property
-    def another_extra_button(self):
-        return None
-
     def backing(self):
         """
         функция для кнопки "Назад(домой)"
@@ -182,7 +181,7 @@ class AddBook(BookForm):
                         book = tuple([row[0].strip(), row[1].strip(), row[2].strip()])
                     elif file_name.endswith('.json'):
                         book = tuple([row["Год выпуска"].strip(), row["Автор"].strip(),
-                                row["Название"].strip()])
+                                      row["Название"].strip()])
                     if book[0] and not book[0].isdigit():
                         incorrect_year = 'Обнаружены позиции с некорректным годом издания\n'
                         continue
@@ -283,61 +282,57 @@ class SearchingResults:
                 else:
                     select_ += f" and name = '{self.res_search[2]}'"
         cursor.execute(select_)
-        self.book_list = set(cursor.fetchall())
+        self.book_list = set(Book(*args) for args in cursor.fetchall())
 
-        if len(self.book_list) > 0:
-            self.window = Tk()
-            self.top_frame = Frame(self.window)
-            self.left_frame = Frame(self.window)
-            self.right_frame = Frame(self.window)
-            self.window.title('Результаты поиска | MyLib')
-            self.book_searched_text = Label(self.top_frame, text='Найденные книги:',
-                                            font=('TimesNewRoman', 15), pady='20', padx='10')
-            self.button_load_txt = Button(self.right_frame, text='Выгрузить в txt',
-                                          background="#555", foreground="#ccc",
-                                          padx="54", font=('TimesNewRoman', 13), command=self.load_txt)
-            self.button_load_json = Button(self.right_frame, text='Выгрузить в json',
-                                           background="#555", foreground="#ccc",
-                                           padx="48", font=('TimesNewRoman', 13), command=self.load_json)
-            self.button_load_csv = Button(self.right_frame, text='Выгрузить в csv',
-                                          background="#555",
-                                          foreground="#ccc", padx="51",
-                                          font=('TimesNewRoman', 13), command=self.load_csv)
-            self.button_upd = Button(self.right_frame, text='Изменить',
-                                     background="#555", foreground="#ccc",
-                                     padx="75", font=('TimesNewRoman', 13), command=self.upd_window)
-            self.button_del = Button(self.right_frame, text='Удалить', background="#555",
-                                     foreground="#ccc",
-                                     padx="80", font=('TimesNewRoman', 13), command=self.del_)
+        self.window = Tk()
+        self.top_frame = Frame(self.window)
+        self.left_frame = Frame(self.window)
+        self.right_frame = Frame(self.window)
+        self.window.title('Результаты поиска | MyLib')
+        self.book_searched_text = Label(self.top_frame, text='Найденные книги:',
+                                        font=('TimesNewRoman', 15), pady='20', padx='10')
+        self.button_load_txt = Button(self.right_frame, text='Выгрузить в txt',
+                                      background="#555", foreground="#ccc",
+                                      padx="54", font=('TimesNewRoman', 13), command=self.load_txt)
+        self.button_load_json = Button(self.right_frame, text='Выгрузить в json',
+                                       background="#555", foreground="#ccc",
+                                       padx="48", font=('TimesNewRoman', 13), command=self.load_json)
+        self.button_load_csv = Button(self.right_frame, text='Выгрузить в csv',
+                                      background="#555",
+                                      foreground="#ccc", padx="51",
+                                      font=('TimesNewRoman', 13), command=self.load_csv)
+        self.button_upd = Button(self.right_frame, text='Изменить',
+                                 background="#555", foreground="#ccc",
+                                 padx="75", font=('TimesNewRoman', 13), command=self.upd_window)
+        self.button_del = Button(self.right_frame, text='Удалить', background="#555",
+                                 foreground="#ccc",
+                                 padx="80", font=('TimesNewRoman', 13), command=self.del_)
 
-            self.window.geometry('700x500')
-            self.top_frame.pack(side='top')
-            self.left_frame.pack(side='left', fill='both', expand=True)
-            self.right_frame.pack(side='right')
-            self.book_searched_text.pack(fill='both')
-            self.button_load_txt.grid(sticky='e')
-            self.button_load_csv.grid(sticky='e')
-            self.button_load_json.grid(sticky='e')
-            self.button_upd.grid(sticky='e')
-            self.button_del.grid(sticky='e')
-            self.table = ttk.Treeview(self.left_frame, columns=("year", "author", "name"), height=500)
-            self.table.column("#0", width=40, minwidth=40, stretch='no')
-            self.table.column("year", width=100, stretch='no')
-            self.table.column("author", width=150, stretch='no')
-            self.table.column("name", width=150, stretch='yes')
-            self.table.heading("#0", text="#", anchor='w')
-            self.table.heading("year", text="Год издания", anchor='w')
-            self.table.heading("author", text="Автор", anchor='w')
-            self.table.heading("name", text="Название", anchor='w')
+        self.window.geometry('700x500')
+        self.top_frame.pack(side='top')
+        self.left_frame.pack(side='left', fill='both', expand=True)
+        self.right_frame.pack(side='right')
+        self.book_searched_text.pack(fill='both')
+        self.button_load_txt.grid(sticky='e')
+        self.button_load_csv.grid(sticky='e')
+        self.button_load_json.grid(sticky='e')
+        self.button_upd.grid(sticky='e')
+        self.button_del.grid(sticky='e')
+        self.table = ttk.Treeview(self.left_frame, columns=("year", "author", "name"), height=500)
+        self.table.column("#0", width=40, minwidth=40, stretch='no')
+        self.table.column("year", width=100, stretch='no')
+        self.table.column("author", width=150, stretch='no')
+        self.table.column("name", width=150, stretch='yes')
+        self.table.heading("#0", text="#", anchor='w')
+        self.table.heading("year", text="Год издания", anchor='w')
+        self.table.heading("author", text="Автор", anchor='w')
+        self.table.heading("name", text="Название", anchor='w')
 
-            for num, row in enumerate(self.book_list, 1):
-                self.table.insert("", num, text=f"{num}", values=row)
+        for num, book in enumerate(self.book_list, 1):
+            self.table.insert("", num, text=f"{num}", values=(book.year, book.author, book.name))
 
-            self.table.pack(side='top', fill='x')
-            self.left_frame.mainloop()
-        else:
-            messagebox.showinfo('MyLib', 'Книги, соответствующие'
-                                         ' выбранным параметрам отсутствуют')
+        self.table.pack(side='top', fill='x')
+        self.left_frame.mainloop()
 
     def upd_window(self):
         try:
@@ -448,7 +443,7 @@ class UpdateBook(BookForm):
                 messagebox.showinfo('MyLib', 'Информация о книге была изменена')
                 self.window.destroy()
                 self.parent.window.destroy()
-                self.parent()
+                SearchingResults(*self.parent.res_search)
             else:
                 messagebox.showinfo('MyLib', f'Книга \'{res_upd[2]}\''
                                              f' уже имеется в библиотеке')
