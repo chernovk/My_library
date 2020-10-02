@@ -9,6 +9,7 @@ from tkinter import filedialog
 from tkinter import *
 
 from book import Book
+from builder import DriverFactory
 
 db = sqlite3.connect('lib.db')
 cursor = db.cursor()
@@ -79,7 +80,7 @@ class BookForm(ABC):
                                   background="#555", foreground="#ccc",
                                   padx="70", font=('TimesNewRoman', 13), command=self.backing)
 
-        self.window.title('Добавление книги | MyLib')
+        self.window.title('MyLib')
         self.top_frame.pack(side='top')
         self.bottom_frame.pack(side='bottom')
         self.left_frame.pack(side='left')
@@ -387,17 +388,19 @@ class SearchingResults:
         """
         Выгрузить список книг в JSON
         """
-        with open('book_list.json', "w", encoding='utf-8') as f_json:
-            list_of_books = []
-            for ind, book in enumerate(self.book_list, 1):
-                data = {
-                    "Год выпуска": f"{book[0] if book[0] != '' else 'не указан'}",
-                    "Автор": f"{book[1] if book[1] != '' else 'не указан'}",
-                    "Название": f"{book[2]}"
-                }
-                list_of_books.append(data)
-            json.dump(list_of_books, f_json, ensure_ascii=False)
-        messagebox.showinfo('MyLib', 'Список книг выгружен в файл book_list.json')
+        json_driver = DriverFactory.get_driver('json')
+        json_driver.write(self.book_list)
+        # with open('book_list.json', "w", encoding='utf-8') as f_json:
+        #     list_of_books = []
+        #     for ind, book in enumerate(self.book_list, 1):
+        #         data = {
+        #             "Год выпуска": f"{book[0] if book[0] != '' else 'не указан'}",
+        #             "Автор": f"{book[1] if book[1] != '' else 'не указан'}",
+        #             "Название": f"{book[2]}"
+        #         }
+        #         list_of_books.append(data)
+        #     json.dump(list_of_books, f_json, ensure_ascii=False)
+        # messagebox.showinfo('MyLib', 'Список книг выгружен в файл book_list.json')
 
 
 class UpdateBook(BookForm):
