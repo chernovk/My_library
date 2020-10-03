@@ -1,7 +1,8 @@
 """
 Данный модуль представляет собой электронную библиотеку с графическим интерфейсом,
 реализованный с помощью tkinter и базы данных sqlite3.  При реализации несколько раз думал,
-что очень кстати пришлось бы знание классов и ООП, но пока только так.
+что, возможно, кстати пришлось бы знание классов и ООП, но пока что смог только вот такую
+громоздкую реализацию сделать
 """
 
 
@@ -366,24 +367,24 @@ def adding_window() -> NoReturn:
     book_add_text = tkinter.Label(top_frame_aw, text='Введите данные о '
                                                      'добавляемой книге',
                                   font=('TimesNewRoman', 15), pady='20', padx='10')
-    book_add_text.pack(fill='both')
+    book_add_text.pack(fill='both', side='top')
 
     book_year_text = tkinter.Label(left_frame_aw, text='Год издания:',
                                    font=('TimesNewRoman', 13))
-    book_year_text.grid()
+    book_year_text.pack()
     book_year = tkinter.Entry(right_frame_aw, width=40)
     book_year.pack(fill='x', expand=True)
     book_year.focus()
 
     book_author_text = tkinter.Label(left_frame_aw, text='Автор:',
                                      font=('TimesNewRoman', 13))
-    book_author_text.grid()
+    book_author_text.pack()
     book_author = tkinter.Entry(right_frame_aw, width=40)
     book_author.pack(fill='x', expand=True)
 
     book_name_text = tkinter.Label(left_frame_aw, text='Название:',
                                    font=('TimesNewRoman', 13))
-    book_name_text.grid()
+    book_name_text.pack()
     book_name = tkinter.Entry(right_frame_aw, width=40)
     book_name.pack(fill='x', expand=True)
 
@@ -495,7 +496,6 @@ def adding_window() -> NoReturn:
 
     add_window.protocol("WM_DELETE_WINDOW", closing)
     add_window.mainloop()
-
 
 
 button_searching = tkinter.Button(bottom_frame_mw, text='Найти / Удалить / Изменить книги',
